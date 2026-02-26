@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI as UX Co-Designer</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0e0d;
+    --paper: #f5f0e8;
+    --cream: #ede7d4;
+    --rust: #c4501a;
+    --sage: #5a7a5e;
+    --gold: #c9a84c;
+    --muted: #8c8070;
+    --border: #d4c9b0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    padding: 4rem 6vw 3rem;
+    border-bottom: 2px solid var(--ink);
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(196,80,26,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .header-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--rust);
+    margin-bottom: 1.2rem;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    line-height: 1.1;
+    font-weight: 700;
+    max-width: 800px;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--rust);
+  }
+
+  .subtitle {
+    margin-top: 1.2rem;
+    color: var(--muted);
+    max-width: 540px;
+    font-size: 1.05rem;
+  }
+
+  /* NAV TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--ink);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    padding: 1rem 2rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    border-right: 1px solid var(--border);
+    transition: all 0.2s;
+    white-space: nowrap;
+    position: relative;
+  }
+
+  .tab::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0; right: 0;
+    height: 2px;
+    background: var(--rust);
+    transform: scaleX(0);
+    transition: transform 0.2s;
+  }
+
+  .tab:hover { color: var(--ink); background: var(--cream); }
+  .tab.active { color: var(--rust); }
+  .tab.active::after { transform: scaleX(1); }
+
+  /* MAIN CONTENT */
+  main {
+    padding: 4rem 6vw;
+    max-width: 1100px;
+  }
+
+  .panel { display: none; animation: fadeUp 0.4s ease; }
+  .panel.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SECTION HEADINGS */
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+  .section-title em { color: var(--rust); font-style: italic; }
+
+  .section-desc {
+    color: var(--muted);
+    margin-bottom: 2.5rem;
+    max-width: 600px;
+  }
+
+  /* PROMPT CARDS */
+  .prompt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .prompt-card {
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    border-radius: 2px;
+    padding: 1.6rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .prompt-card:hover {
+    border-color: var(--rust);
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0 var(--rust);
+  }
+
+  .prompt-phase {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--rust);
+    margin-bottom: 0.6rem;
+  }
+
+  .prompt-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+  }
+
+  .prompt-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--ink);
+    background: rgba(255,255,255,0.6);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 0.9rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .prompt-why {
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+    letter-spacing: 0.08em;
+  }
+  .copy-btn:hover { border-color: var(--rust); color: var(--rust); }
+  .copy-btn.copied { background: var(--sage); color: white; border-color: var(--sage); }
+
+  /* UX CONCEPTS */
+  .concept-list { display: flex; flex-direction: column; gap: 0; }
+
+  .concept-item {
+    border-top: 1.5px solid var(--border);
+    padding: 1.5rem 0;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 2rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .concept-item:last-child { border-bottom: 1.5px solid var(--border); }
+  .concept-item:hover { background: var(--cream); padding-left: 1rem; padding-right: 1rem; margin: 0 -1rem; }
+
+  .concept-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .concept-tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 20px;
+    margin-top: 0.4rem;
+  }
+
+  .tag-research { background: #e8f0e9; color: var(--sage); }
+  .tag-ideation { background: #fef3e2; color: #b07c10; }
+  .tag-testing { background: #fce8e2; color: var(--rust); }
+  .tag-synthesis { background: #e8eaf6; color: #3949ab; }
+
+  .concept-desc { color: var(--muted); font-size: 0.92rem; line-height: 1.65; }
+  .concept-prompt-preview {
+    margin-top: 0.8rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--ink);
+    background: rgba(255,255,255,0.7);
+    border-left: 3px solid var(--rust);
+    padding: 0.7rem 0.9rem;
+  }
+
+  /* PROTOTYPE SECTION */
+  .proto-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .proto-step {
+    position: relative;
+    padding: 1.8rem;
+    border: 1.5px solid var(--border);
+    background: var(--cream);
+  }
+
+  .step-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: var(--border);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .step-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+  }
+
+  .step-desc { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+
+  .step-prompt {
+    margin-top: 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    background: white;
+    border: 1px solid var(--border);
+    padding: 0.8rem;
+    line-height: 1.5;
+    color: var(--ink);
+    border-radius: 2px;
+  }
+
+  /* INTERACTIVE DEMO */
+  .demo-box {
+    border: 2px solid var(--ink);
+    background: white;
+    margin-bottom: 2rem;
+  }
+
+  .demo-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 2px solid var(--ink);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--rust);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .demo-body { padding: 2rem; }
+
+  .persona-builder {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .field-group label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+
+  .field-group input, .field-group select, .field-group textarea {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border: 1.5px solid var(--border);
+    background: var(--paper);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+    border-radius: 2px;
+  }
+
+  .field-group input:focus, .field-group select:focus, .field-group textarea:focus {
+    border-color: var(--rust);
+  }
+
+  .field-group.full { grid-column: 1 / -1; }
+
+  .gen-btn {
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 0.9rem 2rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .gen-btn:hover { background: var(--rust); }
+
+  .output-area {
+    display: none;
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    border-radius: 2px;
+  }
+
+  .output-area.visible { display: block; animation: fadeUp 0.3s ease; }
+
+  .output-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--rust);
+    margin-bottom: 0.8rem;
+  }
+
+  .output-prompt {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+
+  /* DIVIDER */
+  .divider {
+    border: none;
+    border-top: 1.5px solid var(--border);
+    margin: 3rem 0;
+  }
+
+  /* HIGHLIGHT QUOTE */
+  .pullquote {
+    border-left: 4px solid var(--rust);
+    padding: 1rem 1.5rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-style: italic;
+    color: var(--ink);
+    background: var(--cream);
+    margin: 2.5rem 0;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 2px solid var(--ink);
+    padding: 2rem 6vw;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 640px) {
+    .concept-item { grid-template-columns: 1fr; gap: 0.5rem; }
+    .persona-builder { grid-template-columns: 1fr; }
+    .field-group.full { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-label">Workshop Reference · 2025</div>
+  <h1>AI as a <em>UX</em><br>Co-Designer</h1>
+  <p class="subtitle">Prompts, concepts, and prototyping techniques for designers who want to think with AI, not just generate with it.</p>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" onclick="showPanel('prompts', this)">01 · Prompt Library</button>
+  <button class="tab" onclick="showPanel('concepts', this)">02 · UX Concepts</button>
+  <button class="tab" onclick="showPanel('prototype', this)">03 · Prototype Workflow</button>
+  <button class="tab" onclick="showPanel('builder', this)">04 · Prompt Builder</button>
+</nav>
+
+<main>
+
+  <!-- PANEL 1: PROMPTS -->
+  <div class="panel active" id="panel-prompts">
+    <div class="section-title">The Prompt <em>Library</em></div>
+    <p class="section-desc">Curated prompts for each phase of UX design. Click a card to expand the full prompt — copy and adapt for your context.</p>
+
+    <div class="prompt-grid">
+
+      <div class="prompt-card">
+        <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        <div class="prompt-phase">Discovery · Research</div>
+        <div class="prompt-title">User Interview Question Generator</div>
+        <div class="prompt-text">You are a UX researcher. I'm designing [PRODUCT] for [USER GROUP]. Generate 10 open-ended interview questions that uncover their current behavior, frustrations, and latent needs around [TOPIC]. Avoid leading questions. Group by theme.</div>
+        <div class="prompt-why">Why it works: Specifies role, product, and user to get contextual questions rather than generic ones.</div>
+      </div>
+
+      <div class="prompt-card">
+        <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        <div class="prompt-phase">Synthesis · Personas</div>
+        <div class="prompt-title">Persona from Raw Notes</div>
+        <div class="prompt-text">Here are raw notes from 6 user interviews: [PASTE NOTES]. Identify 2–3 distinct user archetypes. For each, give: name, key goal, primary frustration, mental model, and one verbatim-style quote that captures their mindset. Format as a concise persona card.</div>
+        <div class="prompt-why">Why it works: Grounds AI output in real data, making personas evidence-based rather than invented.</div>
+      </div>
+
+      <div class="prompt-card">
+        <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        <div class="prompt-phase">Ideation · Concepts</div>
+        <div class="prompt-title">10x10 Concept Sprints</div>
+        <div class="prompt-text">Problem: [PROBLEM STATEMENT]. Generate 10 radically different design concepts — ranging from obvious to absurd. For each: a catchy concept name, 1-sentence description, and the core UX principle it relies on. Don't filter for feasibility yet.</div>
+        <div class="prompt-why">Why it works: Asking for "absurd" concepts breaks the AI out of safe, generic suggestions.</div>
+      </div>
+
+      <div class="prompt-card">
+        <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        <div class="prompt-phase">Information Architecture</div>
+        <div class="prompt-title">IA from User Goals</div>
+        <div class="prompt-text">Users of [APP] need to accomplish these tasks: [LIST TASKS]. Create a site map / navigation structure that groups content by user mental model, not by company org chart. Use a tree format. Flag any items that create cognitive load due to ambiguous placement.</div>
+        <div class="prompt-why">Why it works: Instructs AI to think from user perspective, not business structure.</div>
+      </div>
+
+      <div class="prompt-card">
+        <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        <div class="prompt-phase">Copywriting · UX Writing</div>
+        <div class="prompt-title">Microcopy for Moments of Friction</div>
+        <div class="prompt-text">Write UX copy for these 5 friction moments in [APP]: [LIST MOMENTS, e.g. empty state, error message, confirmation dialog, onboarding step, destructive action]. Voice: [ADJECTIVES]. Each should be under 20 words, avoid jargon, and reduce anxiety without hiding risk.</div>
+        <div class="prompt-why">Why it works: Constrains length and specifies emotional tone — key for good microcopy.</div>
+      </div>
+
+      <div class="prompt-card">
+        <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        <div class="prompt-phase">Critique · Review</div>
+        <div class="prompt-title">Design Critique Partner</div>
+        <div class="prompt-text">You are a senior UX designer doing a critique. Here is my design rationale for [FEATURE]: [DESCRIPTION]. Challenge my assumptions. What are the 3 biggest risks? What user need might I be ignoring? What cognitive biases might have influenced my decisions? Be direct.</div>
+        <div class="prompt-why">Why it works: Asking for "challenge" and naming biases explicitly pushes AI to give genuinely critical feedback.</div>
+      </div>
+
+      <div class="prompt-card">
+        <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        <div class="prompt-phase">Accessibility · Inclusion</div>
+        <div class="prompt-title">Inclusive Design Audit</div>
+        <div class="prompt-text">Review this user flow for [TASK]: [DESCRIBE FLOW]. Identify barriers for users who are: (1) screen reader dependent, (2) have motor impairments, (3) are low-literacy, (4) have cognitive differences, (5) are non-native speakers. Suggest one concrete fix per barrier.</div>
+        <div class="prompt-why">Why it works: Specificity of impairment categories produces actionable, not generic, accessibility notes.</div>
+      </div>
+
+      <div class="prompt-card">
+        <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        <div class="prompt-phase">Usability Testing</div>
+        <div class="prompt-title">Test Script Generator</div>
+        <div class="prompt-text">Create a moderated usability test script for [FEATURE]. Include: participant intro & warm-up (5 min), 3 scenario-based tasks with think-aloud prompts, follow-up questions for each task, and a closing debrief. Assume a 45-minute session. Note what behaviors to observe per task.</div>
+        <div class="prompt-why">Why it works: Timing and behavior-observation prompts make the output immediately usable.</div>
+      </div>
+
+      <div class="prompt-card">
+        <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        <div class="prompt-phase">Prototyping</div>
+        <div class="prompt-title">Component Spec Writer</div>
+        <div class="prompt-text">Write a detailed component specification for a [COMPONENT NAME] in a [PRODUCT TYPE]. Include: purpose, anatomy (all sub-elements), states (default, hover, focus, disabled, error), interaction behavior, accessibility requirements, and do/don't usage examples. Format for a design system doc.</div>
+        <div class="prompt-why">Why it works: Component spec format is directly useful for handoff to engineering and design system teams.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PANEL 2: UX CONCEPTS -->
+  <div class="panel" id="panel-concepts">
+    <div class="section-title">UX Concepts <em>Explained</em></div>
+    <p class="section-desc">Key UX concepts — and exactly how to use AI to explore, apply, or challenge each one.</p>
+
+    <div class="concept-list">
+
+      <div class="concept-item">
+        <div>
+          <div class="concept-label">Mental Models</div>
+          <span class="concept-tag tag-research">Research</span>
+        </div>
+        <div>
+          <div class="concept-desc">Users understand your interface through their existing knowledge. When your UI matches their mental model, it feels intuitive. When it doesn't, confusion ensues. AI can help you surface and map users' existing mental models before you design.</div>
+          <div class="concept-prompt-preview">→ "Act as a [USER TYPE]. Walk me through, step by step, how you'd expect to [TASK] using an app. Use present tense. Don't describe any specific app — describe what you'd naturally expect."</div>
+        </div>
+      </div>
+
+      <div class="concept-item">
+        <div>
+          <div class="concept-label">Jobs To Be Done</div>
+          <span class="concept-tag tag-research">Research</span>
+        </div>
+        <div>
+          <div class="concept-desc">People don't buy products — they hire them to do a job. JTBD reframes UX around functional, social, and emotional jobs rather than features. AI is powerful for generating and stress-testing job statements.</div>
+          <div class="concept-prompt-preview">→ "Turn this user story into a JTBD format: 'When [SITUATION], I want to [MOTIVATION], so I can [EXPECTED OUTCOME].' Then write 3 variants that represent different underlying jobs."</div>
+        </div>
+      </div>
+
+      <div class="concept-item">
+        <div>
+          <div class="concept-label">Cognitive Load</div>
+          <span class="concept-tag tag-ideation">Ideation</span>
+        </div>
+        <div>
+          <div class="concept-desc">Working memory is limited. Every decision, option, and piece of information in your UI adds load. Reducing intrinsic, extraneous, and germane cognitive load is a core UX principle AI can help audit for.</div>
+          <div class="concept-prompt-preview">→ "Here's a form / screen description: [DESCRIPTION]. Identify every element that adds cognitive load. Classify as intrinsic, extraneous, or germane. Suggest specific simplifications."</div>
+        </div>
+      </div>
+
+      <div class="concept-item">
+        <div>
+          <div class="concept-label">Progressive Disclosure</div>
+          <span class="concept-tag tag-ideation">Ideation</span>
+        </div>
+        <div>
+          <div class="concept-desc">Show users only what they need at each step. Reveal complexity only as needed. AI can help you restructure information architectures using progressive disclosure principles.</div>
+          <div class="concept-prompt-preview">→ "Here's all the information we show on [SCREEN]: [LIST]. Redesign the hierarchy using progressive disclosure. What should be shown immediately vs. on-demand vs. in settings?"</div>
+        </div>
+      </div>
+
+      <div class="concept-item">
+        <div>
+          <div class="concept-label">Error Prevention</div>
+          <span class="concept-tag tag-testing">Testing</span>
+        </div>
+        <div>
+          <div class="concept-desc">Nielsen's heuristic #5 — design systems to prevent errors before they occur. AI can simulate failure modes and generate edge case scenarios to design for.</div>
+          <div class="concept-prompt-preview">→ "You are a destructive user trying to break [FEATURE]. List 15 ways you might accidentally make an error, misunderstand a prompt, or reach an unintended state. Don't filter for likelihood."</div>
+        </div>
+      </div>
+
+      <div class="concept-item">
+        <div>
+          <div class="concept-label">Affinity Mapping</div>
+          <span class="concept-tag tag-synthesis">Synthesis</span>
+        </div>
+        <div>
+          <div class="concept-desc">Clustering qualitative data into themes. After user research, affinity maps reveal patterns. AI can do rapid first-pass clustering of interview data to accelerate synthesis.</div>
+          <div class="concept-prompt-preview">→ "Here are 40 raw observations from user interviews: [PASTE]. Group them into 5–8 themes. Name each theme with a user-centric statement (not a noun, but a need or behavior). List observations under each."</div>
+        </div>
+      </div>
+
+      <div class="concept-item">
+        <div>
+          <div class="concept-label">Emotional Design</div>
+          <span class="concept-tag tag-ideation">Ideation</span>
+        </div>
+        <div>
+          <div class="concept-desc">Don Norman's three levels: visceral (appearance), behavioral (usability), and reflective (meaning). AI helps map emotional journeys and design for peak emotional moments.</div>
+          <div class="concept-prompt-preview">→ "Map the emotional arc of a user going through [FLOW]. Identify the peak positive and peak negative moments. For each negative moment, suggest one design intervention at the visceral, behavioral, and reflective level."</div>
+        </div>
+      </div>
+
+      <div class="concept-item">
+        <div>
+          <div class="concept-label">Heuristic Evaluation</div>
+          <span class="concept-tag tag-testing">Testing</span>
+        </div>
+        <div>
+          <div class="concept-desc">Evaluating a UI against established usability principles. AI can rapidly apply Nielsen's 10 heuristics (or others) to design descriptions or transcripts.</div>
+          <div class="concept-prompt-preview">→ "Evaluate this interface description against Nielsen's 10 Usability Heuristics: [DESCRIPTION]. For each heuristic, rate it 0–4 (0=not applicable, 1=no problem, 4=catastrophic) and explain why."</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PANEL 3: PROTOTYPE WORKFLOW -->
+  <div class="panel" id="panel-prototype">
+    <div class="section-title">Prototype <em>Workflow</em></div>
+    <p class="section-desc">A step-by-step AI-assisted process from brief to testable prototype — with the specific prompts that unlock each phase.</p>
+
+    <div class="pullquote">"The best prompt isn't the one that generates a design — it's the one that generates the right question to ask your users."</div>
+
+    <div class="proto-steps">
+
+      <div class="proto-step">
+        <div class="step-number">01</div>
+        <div class="step-title">Frame the Problem</div>
+        <div class="step-desc">Before any design, crystallize the problem. AI helps you stress-test your problem statement and reframe it from the user's perspective.</div>
+        <div class="step-prompt">"Rewrite this problem statement from a user perspective: [YOUR STATEMENT]. Then give me 3 alternative framings that might reveal different solution spaces."</div>
+      </div>
+
+      <div class="proto-step">
+        <div class="step-number">02</div>
+        <div class="step-title">Simulate a User</div>
+        <div class="step-desc">Have AI roleplay as your target persona to stress-test assumptions early — before investing in design.</div>
+        <div class="step-prompt">"You are [PERSONA]. I'll describe a product concept. After I describe it, respond in character: what's your first reaction, what confuses you, what would make you keep using it?"</div>
+      </div>
+
+      <div class="proto-step">
+        <div class="step-number">03</div>
+        <div class="step-title">Generate Flow Options</div>
+        <div class="step-desc">Get multiple competing user flow structures before committing to wireframes. Compare them systematically.</div>
+        <div class="step-prompt">"Give me 3 different user flow structures for [TASK]. For each: outline the steps, name the key UX tradeoff, and identify who it works best for."</div>
+      </div>
+
+      <div class="proto-step">
+        <div class="step-number">04</div>
+        <div class="step-title">Write Screen Copy First</div>
+        <div class="step-desc">UX writing shapes UX thinking. Draft all copy before visual design to avoid "lorem ipsum" decisions that define the real experience.</div>
+        <div class="step-prompt">"Write all the copy for [SCREEN]: headline, body, CTA, helper text, error states, empty states. Voice: [ADJECTIVES]. Each element must serve a specific user need."</div>
+      </div>
+
+      <div class="proto-step">
+        <div class="step-number">05</div>
+        <div class="step-title">Spec the Prototype</div>
+        <div class="step-desc">Turn a concept into a Figma/Framer/code prototype brief. AI generates the interaction spec your prototype must cover.</div>
+        <div class="step-prompt">"Write a low-fidelity prototype brief for [CONCEPT]. List: screens to build, key interactions to demonstrate, what should and shouldn't work, and what you want to learn from testing it."</div>
+      </div>
+
+      <div class="proto-step">
+        <div class="step-number">06</div>
+        <div class="step-title">Generate Test Tasks</div>
+        <div class="step-desc">Every prototype needs a test plan. AI generates realistic, unbiased task scenarios from your prototype spec.</div>
+        <div class="step-prompt">"Write 4 usability test tasks for this prototype: [DESCRIBE PROTOTYPE]. Each task must: use scenario framing (not UI instructions), have a clear success criterion, and avoid leading language."</div>
+      </div>
+
+    </div>
+
+    <hr class="divider">
+
+    <div class="section-title" style="font-size:1.4rem; margin-bottom:1rem;">What AI <em>Can't</em> Replace</div>
+    <p style="color:var(--muted); max-width:640px; line-height:1.8;">
+      AI is your fastest first-draft collaborator — but it doesn't replace talking to real users. It doesn't replace the insight of watching someone struggle with your prototype for 30 seconds. It doesn't replace the judgment call you make when research says one thing and business says another. Use it to move faster and think wider — not to skip the human parts.
+    </p>
+
+  </div>
+
+  <!-- PANEL 4: BUILDER -->
+  <div class="panel" id="panel-builder">
+    <div class="section-title">Prompt <em>Builder</em></div>
+    <p class="section-desc">Fill in your project context to generate a custom AI prompt for any UX phase.</p>
+
+    <div class="demo-box">
+      <div class="demo-header">
+        <span>Prompt Generator</span>
+        <span>Powered by your inputs</span>
+      </div>
+      <div class="demo-body">
+        <div class="persona-builder">
+          <div class="field-group">
+            <label>Product / App</label>
+            <input type="text" id="inp-product" placeholder="e.g. a recipe planning app">
+          </div>
+          <div class="field-group">
+            <label>Target User</label>
+            <input type="text" id="inp-user" placeholder="e.g. busy parents with young kids">
+          </div>
+          <div class="field-group">
+            <label>UX Phase</label>
+            <select id="inp-phase">
+              <option value="">Select phase...</option>
+              <option value="research">User Research</option>
+              <option value="synthesis">Synthesis / Personas</option>
+              <option value="ideation">Ideation / Concepts</option>
+              <option value="ia">Information Architecture</option>
+              <option value="copy">UX Writing / Copy</option>
+              <option value="testing">Usability Testing</option>
+              <option value="critique">Design Critique</option>
+              <option value="accessibility">Accessibility Review</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Specific Challenge</label>
+            <input type="text" id="inp-challenge" placeholder="e.g. users abandon at step 3 of onboarding">
+          </div>
+          <div class="field-group full">
+            <label>Tone / Voice (optional)</label>
+            <input type="text" id="inp-tone" placeholder="e.g. warm, encouraging, non-technical">
+          </div>
+        </div>
+        <button class="gen-btn" onclick="generatePrompt()">Generate Prompt →</button>
+        <div class="output-area" id="output-area">
+          <div class="output-label">Your Custom Prompt</div>
+          <div class="output-prompt" id="output-prompt"></div>
+          <button class="copy-btn" style="position:static; margin-top:1rem; display:inline-block;" onclick="copyOutput()">Copy Prompt</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-box">
+      <div class="demo-header">
+        <span>Prompt Patterns</span>
+        <span>Copy these structures</span>
+      </div>
+      <div class="demo-body">
+        <p style="color:var(--muted); margin-bottom:1.5rem; font-size:0.9rem;">Every great UX prompt follows a pattern. These are the building blocks.</p>
+
+        <div style="display:flex;flex-direction:column;gap:1rem;">
+          <div>
+            <div class="prompt-phase">Role + Context + Constraint</div>
+            <div class="prompt-text">You are a [ROLE]. [CONTEXT ABOUT PRODUCT/USER]. [TASK]. Constraint: [LIMITATION OR FORMAT].</div>
+          </div>
+          <div>
+            <div class="prompt-phase">Simulate + React</div>
+            <div class="prompt-text">Act as [PERSONA]. I'll describe [THING]. After I describe it, respond in-character with: [SPECIFIC REACTIONS TO GIVE].</div>
+          </div>
+          <div>
+            <div class="prompt-phase">Compare + Evaluate</div>
+            <div class="prompt-text">Give me [N] different approaches to [PROBLEM]. For each: [ELEMENT 1], [ELEMENT 2], [ELEMENT 3]. Then recommend the best for [SPECIFIC CONTEXT].</div>
+          </div>
+          <div>
+            <div class="prompt-phase">Audit + Fix</div>
+            <div class="prompt-text">Here is [ARTIFACT]: [CONTENT]. Evaluate it against [FRAMEWORK/CRITERIA]. For each issue: severity (1–3), why it's a problem, and a specific fix.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<footer>
+  <span>AI as UX Co-Designer · Workshop Reference</span>
+  <span>Adapt freely. Attribute when sharing.</span>
+</footer>
+
+<script>
+  function showPanel(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function copyPrompt(btn) {
+    const card = btn.closest('.prompt-card');
+    const text = card.querySelector('.prompt-text').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  function copyOutput() {
+    const text = document.getElementById('output-prompt').textContent;
+    navigator.clipboard.writeText(text);
+  }
+
+  const templates = {
+    research: (p,u,c,t) => `You are a senior UX researcher. I'm designing ${p || '[PRODUCT]'} for ${u || '[USERS]'}.
+
+Generate 10 open-ended interview questions that uncover their current behavior, mental models, frustrations, and latent needs around: ${c || '[TOPIC/CHALLENGE]'}.
+
+Requirements:
+— No leading questions
+— Group by theme (behaviors, frustrations, workarounds, aspirations)
+— Each question should open a conversation, not close it${t ? '\n— Tone: ' + t : ''}
+
+Also suggest 2 warm-up questions to open the interview.`,
+
+    synthesis: (p,u,c,t) => `I've completed user interviews for ${p || '[PRODUCT]'} with ${u || '[USERS]'}.
+
+Here's my challenge: ${c || '[PASTE NOTES OR DESCRIBE]'}
+
+Synthesize this into 2–3 distinct user archetypes. For each persona:
+— Name & tagline
+— Primary goal
+— Core frustration
+— Mental model (how they think about this problem)
+— One verbatim-style quote
+— Implication for design
+
+Don't invent details not implied by the data.`,
+
+    ideation: (p,u,c,t) => `Design challenge: ${p || '[PRODUCT]'} needs to help ${u || '[USERS]'} with: ${c || '[CHALLENGE]'}
+
+Run a concept sprint. Generate 8 design concepts ranging from obvious to provocative. For each:
+— Concept name (memorable)
+— Core mechanic (1 sentence)
+— UX principle it relies on
+— Who it works best for
+— The risk or tradeoff
+
+Don't filter for feasibility. Include at least one that challenges the problem framing itself.`,
+
+    ia: (p,u,c,t) => `I'm building the information architecture for ${p || '[PRODUCT]'} serving ${u || '[USERS]'}.
+
+Problem context: ${c || '[CHALLENGE]'}
+
+Create a navigation structure that:
+1. Groups content by user mental model, not company structure
+2. Uses user-language for labels
+3. Handles the top 5 user tasks with minimal clicks
+
+Format as a site map tree. Flag any items with ambiguous placement and explain why.`,
+
+    copy: (p,u,c,t) => `Write UX copy for ${p || '[PRODUCT]'} targeting ${u || '[USERS]'}.
+
+Specific moment to write for: ${c || '[FEATURE OR FLOW]'}
+
+Write copy for these UI elements:
+— Empty state (first-time user)
+— Error message
+— Success confirmation
+— Help / tooltip text
+— CTA button label
+
+Constraints:
+— Under 20 words per element
+— ${t ? 'Voice: ' + t : 'Clear, human, jargon-free'}
+— Each piece must reduce anxiety without hiding real risk`,
+
+    testing: (p,u,c,t) => `Create a usability test script for ${p || '[PRODUCT]'}.
+
+Focus: ${c || '[FEATURE TO TEST]'}
+Participants: ${u || '[USER TYPE]'}
+
+Script structure:
+1. Intro & consent (5 min) — include exact words to say
+2. Warm-up questions (3 min)
+3. Three scenario-based tasks (25 min) — use real-world framing, not UI instructions
+4. Post-task questions after each task
+5. Closing debrief (7 min)
+
+For each task: include what behaviors to observe and how you'll know if the user succeeded.`,
+
+    critique: (p,u,c,t) => `You are a senior UX designer doing a peer critique. Be direct and genuinely challenging.
+
+Product: ${p || '[PRODUCT]'}
+Design decision I made: ${c || '[DESCRIBE YOUR DESIGN CHOICE]'}
+User it serves: ${u || '[USER TYPE]'}
+
+Challenge my thinking:
+1. What assumption am I making that could be wrong?
+2. What user need might I be underweighting?
+3. What cognitive bias could have influenced this decision?
+4. What would a critic from the opposing UX philosophy say?
+5. What would you recommend instead, and why?
+
+Don't be diplomatic. Be useful.`,
+
+    accessibility: (p,u,c,t) => `Conduct an accessibility review of this feature in ${p || '[PRODUCT]'}:
+
+${c || '[DESCRIBE THE FEATURE OR FLOW]'}
+
+Review for users who are:
+1. Blind / screen reader dependent
+2. Low vision
+3. Motor impaired (keyboard-only / switch access)
+4. Cognitive differences (ADHD, dyslexia)
+5. Low literacy or non-native speakers
+
+For each group: identify the most likely barrier and suggest one specific, implementable fix. Prioritize by impact.`,
+  };
+
+  function generatePrompt() {
+    const p = document.getElementById('inp-product').value;
+    const u = document.getElementById('inp-user').value;
+    const phase = document.getElementById('inp-phase').value;
+    const c = document.getElementById('inp-challenge').value;
+    const t = document.getElementById('inp-tone').value;
+
+    if (!phase) { alert('Please select a UX phase.'); return; }
+
+    const prompt = templates[phase](p, u, c, t);
+    document.getElementById('output-prompt').textContent = prompt;
+    document.getElementById('output-area').classList.add('visible');
+  }
+</script>
+</body>
+</html>
